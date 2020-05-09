@@ -1,4 +1,8 @@
-#ref:https://www.kaggle.com/pestipeti/pytorch-starter-fasterrcnn-train
+# ref:https://www.kaggle.com/pestipeti/pytorch-starter-fasterrcnn-train
+
+import argparse
+import time
+from utils import *
 
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
@@ -17,6 +21,7 @@ DIR_INPUT = '/media/data1/jliang_data/dataset/wheat'
 DIR_TRAIN = f'{DIR_INPUT}/train'
 DIR_TEST = f'{DIR_INPUT}/test'
 
+
 # Albumentations
 def get_train_transform():
     return A.Compose([
@@ -24,72 +29,108 @@ def get_train_transform():
         ToTensorV2(p=1.0)
     ], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']})
 
+
 def get_valid_transform():
     return A.Compose([
         ToTensorV2(p=1.0)
     ], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']})
 
+
 train_dataset = WheatDataset(DIR_INPUT, get_train_transform())
+
 
 def collate_fn(batch):
     return tuple(zip(*batch))
 
-train_data_loader = DataLoader(
-    train_dataset,
-    batch_size=8, #16
-    shuffle=False, #set it to True??
-    num_workers=4,
-    collate_fn=collate_fn #any diff with default???
-)
 
-# load a model; pre-trained on COCO
-model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
-num_classes = 2  # 1 class (wheat) + background
+def train(args):
+    t = time.strftime("-%Y-%m-%d-%H-%M-%S", time.localtime())
+    name = 'Log' + t
+    logger = get_logger('log', name)
 
-# get number of input features for the classifier
-in_features = model.roi_heads.box_predictor.cls_score.in_features
+    summary_args(logger, vars(args), 'green')
 
-# replace the pre-trained head with a new one
-model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+    train_data_loader = DataLoader(
+        train_dataset,
+        batch_size=args.batch_size,  # 16
+        shuffle=args.shuffle,  # set it to True??
+        num_workers=4,
+        collate_fn=collate_fn  # any diff with default???
+    )
 
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-model.to(device)
-params = [p for p in model.parameters() if p.requires_grad]
-optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
-# lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
-lr_scheduler = None
+    # load a model; pre-trained on COCO
+    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+    num_classes = 2  # 1 class (wheat) + background
 
-num_epochs = 2
-loss_hist = Averager()
-itr = 1
+    # get number of input features for the classifier
+    in_features = model.roi_heads.box_predictor.cls_score.in_features
 
-for epoch in range(num_epochs):
-    loss_hist.reset()
+    # replace the pre-trained head with a new one
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
-    for images, targets, image_ids in train_data_loader:
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    model.to(device)
+    params = [p for p in model.parameters() if p.requires_grad]
+    optimizer = torch.optim.SGD(params, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+    # lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
+    lr_scheduler = None
 
-        images = list(image.to(device) for image in images)
-        targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+    num_epochs = 2
+    loss_hist = Averager()
+    itr = 1
 
-        loss_dict = model(images, targets)
+    for epoch in range(num_epochs):
+        loss_hist.reset()
 
-        losses = sum(loss for loss in loss_dict.values())
-        loss_value = losses.item()
+        Timer.record()
+        for images, targets, image_ids in train_data_loader:
 
-        loss_hist.send(loss_value)
+            images = list(image.to(device) for image in images)
+            targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
-        optimizer.zero_grad()
-        losses.backward()
-        optimizer.step()
+            loss_dict = model(images, targets)
 
-        if itr % 50 == 0:
-            print(f"Iteration #{itr} loss: {loss_value}")
+            losses = sum(loss for loss in loss_dict.values())
+            loss_value = losses.item()
 
-        itr += 1
+            loss_hist.send(loss_value)
 
-    # update the learning rate
-    if lr_scheduler is not None:
-        lr_scheduler.step()
+            optimizer.zero_grad()
+            losses.backward()
+            optimizer.step()
 
-    print(f"Epoch #{epoch} loss: {loss_hist.value}")
-torch.save(model.state_dict(), 'fasterrcnn_resnet50_fpn.pth')
+            if itr % 50 == 0:
+                Timer.record()
+                # print(f"Iteration #{itr} loss: {loss_value}")
+                now_lr = optimizer.state_dict()['param_groups'][0]['lr']
+
+                msg = 'Epoch={}, Batch={}, lr={}, loss={:.4f}, speed={:.1f} b/s'
+                msg = msg.format(epoch, itr, now_lr, loss_value, 50 / Timer.interval())
+                info(logger, msg)
+
+            itr += 1
+
+        # update the learning rate
+        if lr_scheduler is not None:
+            lr_scheduler.step()
+
+        print(f"Epoch #{epoch} loss: {loss_hist.value}")
+    torch.save(model.state_dict(), 'fasterrcnn_resnet50_fpn' + t + '.pth')
+
+
+if __name__ == "__main__":
+    parse = argparse.ArgumentParser()
+
+    # LR setting
+    parse.add_argument('--lr', type=float, default=0.005)
+    parse.add_argument('--momentum', type=float, default=0.9)
+    parse.add_argument('--weight-decay', type=float, default=0.0005)
+
+    # Train setting
+    parse.add_argument('--num-epoch', type=int, default=2)
+    parse.add_argument('--batch-size', type=int, default=8)
+    parse.add_argument('--shuffle', action='store_true')
+
+    args = parse.parse_args()
+
+    train(args)
