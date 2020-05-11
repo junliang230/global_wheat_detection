@@ -1,10 +1,12 @@
 #### baseline:fasterrcnn50_rpn
-| lr | epoch | bs | lr_scheduler | precision |
-| :----:| :----: | :----: | :----: | :----: |
-| 0.005 | 12 | 8 |  StepLR step_size=3, gamma=0.1 | 0.6354 |
-| 0.0025 | 12 | 8 | StepLR step_size=3, gamma=0.1 | 0.6410 |
-| 0.0025 | 20 | 8 | MultiStepLR milestones=[16,19], gamma=0.1 | 0.6548 |
-| 0.0025 | 30 | 8 | MultiStepLR milestones=[20,29], gamma=0.1 | 0.6567 |
+| lr | epoch | bs | lr_scheduler | train_size | precision |
+| :----:| :----: | :----: | :----: | :----: | :----: |
+| 0.005 | 12 | 8 |  StepLR step_size=3, gamma=0.1 | 1333*800 | 0.6354 |
+| 0.0025 | 12 | 8 | StepLR step_size=3, gamma=0.1 |   1333*800 |0.6410 |
+| 0.0025 | 20 | 8 | MultiStepLR milestones=[16,19], gamma=0.1 | 1333*800 | 0.6548 |
+| 0.0025 | 30 | 8 | MultiStepLR milestones=[16,19], gamma=0.1 | 1333*800 | 0.6567 |
+| 0.0025 | 20 | 8 | MultiStepLR milestones=[16,19], gamma=0.1 | 1024*1024 | 0.6595 |
+| 0.0025 | 20 | 8 | MultiStepLR milestones=[16,19], gamma=0.1 | 1024*1024+norm | 0.6647 |
 
 
 default:

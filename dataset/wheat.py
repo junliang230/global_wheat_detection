@@ -24,9 +24,9 @@ class WheatDataset(Dataset):
         train_df['h'] = train_df['h'].astype(np.float)
         image_ids = train_df['image_id'].unique()
         valid_ids = image_ids[-665:]
-        train_ids = image_ids[:-665]
+        # train_ids = image_ids[:-2000]
         valid_df = train_df[train_df['image_id'].isin(valid_ids)]
-        train_df = train_df[train_df['image_id'].isin(train_ids)]
+        # train_df = train_df[train_df['image_id'].isin(train_ids)]
         self.image_ids = train_df['image_id'].unique()
         self.df = train_df
         self.image_dir = f'{DIR_INPUT}/train'
@@ -44,7 +44,7 @@ class WheatDataset(Dataset):
 
         image = cv2.imread(f'{self.image_dir}/{image_id}.jpg', cv2.IMREAD_COLOR)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32)
-        image /= 255.0
+        # image /= 255.0
 
         boxes = records[['x', 'y', 'w', 'h']].values
         boxes[:, 2] = boxes[:, 0] + boxes[:, 2]

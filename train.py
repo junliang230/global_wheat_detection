@@ -53,13 +53,15 @@ def train(args):
     train_data_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,  # 16
-        shuffle=args.shuffle,  # set it to True??
+        shuffle=True,#args.shuffle,  # set it to True??
         num_workers=4,
         collate_fn=collate_fn  # any diff with default???
     )
 
     # load a model; pre-trained on COCO
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True,
+                                                                 min_size=1024, max_size=1024,
+                                                                 image_mean=[123.675, 116.28, 103.53], image_std=[58.395, 57.12, 57.375])
     num_classes = 2  # 1 class (wheat) + background
 
     # get number of input features for the classifier
@@ -72,10 +74,10 @@ def train(args):
     model.to(device)
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
-    # lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
-    lr_scheduler = None
+    lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[16, 19], gamma=0.1)
+    # lr_scheduler = None
 
-    num_epochs = 2
+    num_epochs = args.num_epoch
     loss_hist = Averager()
     itr = 1
 
@@ -117,17 +119,18 @@ def train(args):
         print(f"Epoch #{epoch} loss: {loss_hist.value}")
     torch.save(model.state_dict(), 'fasterrcnn_resnet50_fpn' + t + '.pth')
 
+os.environ["CUDA_VISIBLE_DEVICES"] = '3'
 
 if __name__ == "__main__":
     parse = argparse.ArgumentParser()
 
     # LR setting
-    parse.add_argument('--lr', type=float, default=0.005)
+    parse.add_argument('--lr', type=float, default=0.0025)
     parse.add_argument('--momentum', type=float, default=0.9)
     parse.add_argument('--weight-decay', type=float, default=0.0005)
 
     # Train setting
-    parse.add_argument('--num-epoch', type=int, default=2)
+    parse.add_argument('--num-epoch', type=int, default=20)
     parse.add_argument('--batch-size', type=int, default=8)
     parse.add_argument('--shuffle', action='store_true')
 
