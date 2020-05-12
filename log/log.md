@@ -7,6 +7,8 @@
 | 0.0025 | 30 | 8 | MultiStepLR milestones=[16,19], gamma=0.1 | 1333*800 | 0.6567 |
 | 0.0025 | 20 | 8 | MultiStepLR milestones=[16,19], gamma=0.1 | 1024*1024 | 0.6595 |
 | 0.0025 | 20 | 8 | MultiStepLR milestones=[16,19], gamma=0.1 | 1024*1024+norm | 0.6647 |
+| 0.01 |30 | 8 | StepLR(optimizer, step_size=5, gamma=0.5) weight_decay 0.0001 |1024*1024+norm(wheat)|0.6390|
+| 0.01 |30 | 8 | StepLR(optimizer, step_size=10, gamma=0.5) weight_decay 0.0001 |1024*1024+norm |0.6292|
 | 0.01 |30 | 8 | StepLR(optimizer, step_size=5, gamma=0.5) weight_decay 0.0001 |1024*1024+norm |0.6704|
 
 default:
