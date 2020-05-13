@@ -5,9 +5,12 @@ import numpy as np
 import re
 import pandas as pd
 
+DIR_INPUT = '/media/data1/jliang_data/dataset/wheat'
+DIR_TEST = f'{DIR_INPUT}/test'
+
 class WheatDataset(Dataset):
 
-    def __init__(self, DIR_INPUT, transforms=None):
+    def __init__(self, DIR_INPUT,test_df,transforms=None):
         super().__init__()
 
         train_df = pd.read_csv(f'{DIR_INPUT}/train.csv')
@@ -27,6 +30,12 @@ class WheatDataset(Dataset):
         # train_ids = image_ids[:-2000]
         valid_df = train_df[train_df['image_id'].isin(valid_ids)]
         # train_df = train_df[train_df['image_id'].isin(train_ids)]
+
+        #incorporate train_df and test_df
+        frames = [train_df, test_df]
+        train_df = pd.concat(frames)
+        # train_df.tail()
+
         self.image_ids = train_df['image_id'].unique()
         self.df = train_df
         self.image_dir = f'{DIR_INPUT}/train'
@@ -42,7 +51,13 @@ class WheatDataset(Dataset):
         image_id = self.image_ids[index]
         records = self.df[self.df['image_id'] == image_id]
 
-        image = cv2.imread(f'{self.image_dir}/{image_id}.jpg', cv2.IMREAD_COLOR)
+
+        if 'nvnn' in image_id:
+            image_id = image_id[4:]
+            image = cv2.imread(f'{DIR_TEST}/{image_id}.jpg', cv2.IMREAD_COLOR)
+        else:
+            image = cv2.imread(f'{self.image_dir}/{image_id}.jpg', cv2.IMREAD_COLOR)
+
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32)
         # image /= 255.0
 
@@ -79,6 +94,39 @@ class WheatDataset(Dataset):
             target['boxes'] = torch.stack(tuple(map(torch.tensor, zip(*sample['bboxes'])))).permute(1, 0)
 
         return image, target, image_id
+
+    def __len__(self) -> int:
+        return self.image_ids.shape[0]
+
+class WheatTestDataset(Dataset):
+
+    def __init__(self, DIR_INPUT, transforms=None):
+        super().__init__()
+
+        dataframe = pd.read_csv(f'{DIR_INPUT}/sample_submission.csv')
+
+        self.image_ids = dataframe['image_id'].unique()
+        self.df = dataframe
+        self.image_dir = f'{DIR_INPUT}/test'
+        self.transforms = transforms
+
+    def __getitem__(self, index: int):
+
+        image_id = self.image_ids[index]
+        records = self.df[self.df['image_id'] == image_id]
+
+        image = cv2.imread(f'{self.image_dir}/{image_id}.jpg', cv2.IMREAD_COLOR)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32)
+        # image /= 255.0
+
+        if self.transforms:
+            sample = {
+                'image': image,
+            }
+            sample = self.transforms(**sample)
+            image = sample['image']
+
+        return image, image_id
 
     def __len__(self) -> int:
         return self.image_ids.shape[0]
