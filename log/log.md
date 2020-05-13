@@ -14,10 +14,10 @@
 #### baseline:fasterrcnn50_rpn , Pseudo Labeling retrain
 | lr | epoch | bs | lr_scheduler | train_size | pretrainmode |precision |
 | :----:| :----: | :----: | :----: | :----: | :----: | :----: |
-| 0.01 |10 | 8 | StepLR(optimizer, step_size=5, gamma=0.5) weight_decay 0.0001 |1024*1024+norm(wheat)| 0.6704 mode |0.6753|
-| 0.01 |20 | 8 | StepLR(optimizer, step_size=5, gamma=0.5) weight_decay 0.0001 |1024*1024+norm(wheat)| 0.6704 mode |0.6821|
-| 0.01 |30 | 8 | StepLR(optimizer, step_size=5, gamma=0.5) weight_decay 0.0001 |1024*1024+norm(wheat)| 0.6704 mode |0.6843|
-| 0.01 |10 | 8 | StepLR(optimizer, step_size=5, gamma=0.5) weight_decay 0.0001 |1024*1024+norm(wheat)| 0.6843 mode |0.6711|
+| 0.01 |10 | 8 | StepLR(optimizer, step_size=5, gamma=0.5) weight_decay 0.0001 |1024*1024+norm| 0.6704 mode |0.6753|
+| 0.01 |20 | 8 | StepLR(optimizer, step_size=5, gamma=0.5) weight_decay 0.0001 |1024*1024+norm| 0.6704 mode |0.6821|
+| 0.01 |30 | 8 | StepLR(optimizer, step_size=5, gamma=0.5) weight_decay 0.0001 |1024*1024+norm| 0.6704 mode |0.6843|
+| 0.01 |10 | 8 | StepLR(optimizer, step_size=5, gamma=0.5) weight_decay 0.0001 |1024*1024+norm| 0.6843 mode |0.6711|
 default:
 
 * optimizer = torch.optim.SGD(params, lr=0.01, momentum=0.9, weight_decay=0.0001)
