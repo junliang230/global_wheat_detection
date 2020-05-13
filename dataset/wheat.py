@@ -10,7 +10,7 @@ DIR_TEST = f'{DIR_INPUT}/test'
 
 class WheatDataset(Dataset):
 
-    def __init__(self, DIR_INPUT,test_df,transforms=None):
+    def __init__(self, DIR_INPUT,transforms=None,test_df=None):
         super().__init__()
 
         train_df = pd.read_csv(f'{DIR_INPUT}/train.csv')
