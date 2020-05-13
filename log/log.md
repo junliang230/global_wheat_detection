@@ -18,6 +18,8 @@
 | 0.01 |20 | 8 | StepLR(optimizer, step_size=5, gamma=0.5) weight_decay 0.0001 |1024*1024+norm| 0.6704 mode |0.6821|
 | 0.01 |30 | 8 | StepLR(optimizer, step_size=5, gamma=0.5) weight_decay 0.0001 |1024*1024+norm| 0.6704 mode |0.6843|
 | 0.01 |10 | 8 | StepLR(optimizer, step_size=5, gamma=0.5) weight_decay 0.0001 |1024*1024+norm| 0.6843 mode |0.6711|
-default:
+| 0.01 |20 | 8 | StepLR(optimizer, step_size=5, gamma=0.5) weight_decay 0.0001 |1024*1024+norm| 0.6843 mode |0.6801|
+| 0.01 |30 | 8 | StepLR(optimizer, step_size=5, gamma=0.5) weight_decay 0.0001 |1024*1024+norm| 0.6843 mode |0.6743|
 
+default:
 * optimizer = torch.optim.SGD(params, lr=0.01, momentum=0.9, weight_decay=0.0001)
