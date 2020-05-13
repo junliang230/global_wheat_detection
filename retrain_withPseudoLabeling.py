@@ -191,8 +191,8 @@ def train(args,model,device,test_df):
 
             itr += 1
 
-        if epoch==9 or epoch==19:
-            torch.save(model.state_dict(), 'fasterrcnn_resnet50_fpn_' + str(epoch) + t + '.pth')
+        # if epoch==9 or epoch==19:
+        #     torch.save(model.state_dict(), 'fasterrcnn_resnet50_fpn_' + str(epoch) + t + '.pth')
 
         # update the learning rate
         if lr_scheduler is not None:
