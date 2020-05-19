@@ -5,7 +5,7 @@ import numpy as np
 import re
 import pandas as pd
 
-DIR_INPUT = '/media/data1/jliang_data/dataset/wheat'
+DIR_INPUT = '/data1/jliang_data/dataset/wheat'
 DIR_TEST = f'{DIR_INPUT}/test'
 
 class WheatDataset(Dataset):
@@ -62,8 +62,12 @@ class WheatDataset(Dataset):
         # image /= 255.0
 
         boxes = records[['x', 'y', 'w', 'h']].values
+        boxes[:, 0] = np.where(boxes[:, 0] < 0, 0, boxes[:, 0])
+        boxes[:, 1] = np.where(boxes[:, 1] < 0, 0, boxes[:, 1])
         boxes[:, 2] = boxes[:, 0] + boxes[:, 2]
         boxes[:, 3] = boxes[:, 1] + boxes[:, 3]
+        boxes[:, 2] = np.where(boxes[:, 2] > 1024, 1024, boxes[:, 2]) #TODO: change 1024 to image width
+        boxes[:, 3] = np.where(boxes[:, 3] > 1024, 1024, boxes[:, 3])
 
         area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
         area = torch.as_tensor(area, dtype=torch.float32)
@@ -83,15 +87,19 @@ class WheatDataset(Dataset):
         target['iscrowd'] = iscrowd
 
         if self.transforms:
-            sample = {
-                'image': image,
-                'bboxes': target['boxes'],
-                'labels': labels
-            }
-            sample = self.transforms(**sample)
+            while True:
+                sample = {
+                    'image': image,
+                    'bboxes': target['boxes'],
+                    'labels': labels
+                }
+                sample = self.transforms(**sample)
+                if len(sample['bboxes']) != 0:
+                    break
             image = sample['image']
-
             target['boxes'] = torch.stack(tuple(map(torch.tensor, zip(*sample['bboxes'])))).permute(1, 0)
+            # torch.tensor(sample['bboxes'])
+            target['labels'] = torch.stack(sample['labels'], 0)
 
         return image, target, image_id
 

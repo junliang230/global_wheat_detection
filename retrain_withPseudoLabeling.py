@@ -19,8 +19,8 @@ from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
 from torch.utils.data.sampler import SequentialSampler
 
-DIR_INPUT = '/media/data1/jliang_data/dataset/wheat'
-WEIGHTS_FILE = '/media/data2/wrye/gittemp/global_wheat_detection/fasterrcnn_resnet50_fpn_19-2020-05-13-08-36-29.pth'
+DIR_INPUT = '/data1/jliang_data/dataset/wheat'
+WEIGHTS_FILE = '/data1/jliang_data/competition/first/global_wheat_detection/fasterrcnn_resnet50_fpn-40_30_35.pth'
 
 os.environ["CUDA_VISIBLE_DEVICES"] = '2'
 
@@ -153,7 +153,7 @@ def train(args,model,device,test_df):
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[16, 19], gamma=0.1)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.5)
     # lr_scheduler = None
 
     num_epochs = args.num_epoch
@@ -210,7 +210,7 @@ if __name__ == "__main__":
     parse.add_argument('--weight-decay', type=float, default=0.0001)
 
     # Train setting
-    parse.add_argument('--num-epoch', type=int, default=20)
+    parse.add_argument('--num-epoch', type=int, default=4)
     parse.add_argument('--batch-size', type=int, default=8)
     parse.add_argument('--shuffle', type=bool, default=True)
 

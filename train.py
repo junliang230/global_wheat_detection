@@ -18,16 +18,17 @@ from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
 from torch.utils.data.sampler import SequentialSampler
 
-DIR_INPUT = '/media/data1/jliang_data/dataset/wheat'
+DIR_INPUT = '/data1/jliang_data/dataset/wheat'
 DIR_TRAIN = f'{DIR_INPUT}/train'
 DIR_TEST = f'{DIR_INPUT}/test'
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '2'
+os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 
 # Albumentations
 def get_train_transform():
     return A.Compose([
         A.Flip(0.5),
+        A.RandomCrop(height=1000, width=1000, p=0.5),
         ToTensorV2(p=1.0)
     ], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']})
 
@@ -62,7 +63,7 @@ def train(args):
 
     # load a model; pre-trained on COCO
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True,
-                                                                 min_size=1024, max_size=1024,
+                                                                 min_size=[512, 800, 1024], max_size=1024,
                                                                  image_mean=[123.675, 116.28, 103.53], image_std=[58.395, 57.12, 57.375])
     num_classes = 2  # 1 class (wheat) + background
 
@@ -76,8 +77,8 @@ def train(args):
     model.to(device)
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
-    # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[16, 19], gamma=0.1)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
+    lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 35], gamma=0.1)
+    # lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
     # lr_scheduler = None
 
     num_epochs = args.num_epoch
@@ -127,12 +128,12 @@ if __name__ == "__main__":
     parse = argparse.ArgumentParser()
 
     # LR setting
-    parse.add_argument('--lr', type=float, default=0.01)
+    parse.add_argument('--lr', type=float, default=0.0025)
     parse.add_argument('--momentum', type=float, default=0.9)
     parse.add_argument('--weight-decay', type=float, default=0.0001)
 
     # Train setting
-    parse.add_argument('--num-epoch', type=int, default=20)
+    parse.add_argument('--num-epoch', type=int, default=40)
     parse.add_argument('--batch-size', type=int, default=8)
     parse.add_argument('--shuffle', type=bool, default=True)
 
