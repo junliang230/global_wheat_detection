@@ -6,7 +6,7 @@ import torchvision
 import pandas as pd
 import numpy as np
 import albumentations as A
-
+from dataset.transform import PhotoMetricDistortion
 from loss.averager import Averager
 from dataset.wheat import WheatDataset,WheatTestDataset
 from utils.Network_utils import get_logger,summary_args,Timer,wrap_color,info
@@ -22,15 +22,24 @@ DIR_INPUT = '/data1/jliang_data/dataset/wheat'
 DIR_TRAIN = f'{DIR_INPUT}/train'
 DIR_TEST = f'{DIR_INPUT}/test'
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
 # Albumentations
 def get_train_transform():
-    return A.Compose([
-        A.Flip(0.5),
-        A.RandomCrop(height=1000, width=1000, p=0.5),
-        ToTensorV2(p=1.0)
-    ], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']})
+    train_pipline = [
+        PhotoMetricDistortion(
+            brightness_delta=32,
+            contrast_range=(0.5, 1.5),
+            saturation_range=(0.5, 1.5),
+            hue_delta=18),
+        A.Compose([
+            A.Flip(0.5),
+            A.RandomCrop(height=1000, width=1000, p=0.5),
+            ToTensorV2(p=1.0)
+        ], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']})
+    ]
+
+    return train_pipline
 
 
 def get_valid_transform():
@@ -77,7 +86,7 @@ def train(args):
     model.to(device)
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
-    lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 35], gamma=0.1)
+    lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[16, 19], gamma=0.1)
     # lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
     # lr_scheduler = None
 
@@ -133,7 +142,7 @@ if __name__ == "__main__":
     parse.add_argument('--weight-decay', type=float, default=0.0001)
 
     # Train setting
-    parse.add_argument('--num-epoch', type=int, default=40)
+    parse.add_argument('--num-epoch', type=int, default=20)
     parse.add_argument('--batch-size', type=int, default=8)
     parse.add_argument('--shuffle', type=bool, default=True)
 

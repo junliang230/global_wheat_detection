@@ -87,15 +87,17 @@ class WheatDataset(Dataset):
         target['iscrowd'] = iscrowd
 
         if self.transforms:
-            while True:
-                sample = {
-                    'image': image,
-                    'bboxes': target['boxes'],
-                    'labels': labels
-                }
-                sample = self.transforms(**sample)
-                if len(sample['bboxes']) != 0:
-                    break
+            sample = {
+                'image': image,
+                'bboxes': target['boxes'],
+                'labels': labels
+            }
+            for t in self.transforms:
+                while True:
+                    new_sample = t(**sample)
+                    if len(new_sample['bboxes']) != 0:
+                        sample = new_sample
+                        break
             image = sample['image']
             target['boxes'] = torch.stack(tuple(map(torch.tensor, zip(*sample['bboxes'])))).permute(1, 0)
             # torch.tensor(sample['bboxes'])
