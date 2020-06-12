@@ -67,6 +67,7 @@ def summary_args(logger, args, color=None):
 
 
 def get_logger(snapshot, model_name):
+    snapshot = os.path.join(snapshot, 'log')
     if not os.path.exists(snapshot):
         os.makedirs(snapshot)
     logging.basicConfig(filename=os.path.join(snapshot, model_name + '.log'), level=logging.INFO)
