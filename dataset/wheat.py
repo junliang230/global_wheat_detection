@@ -87,12 +87,29 @@ class WheatDataset(Dataset):
         target['iscrowd'] = iscrowd
 
         if self.transforms:
-            sample = {
+            results = {
                 'image': image,
                 'bboxes': target['boxes'],
-                'labels': labels
+                'labels': labels,
+                'idx': index,
+                'image_ids': self.image_ids,
+                'df': self.df,
             }
-            for t in self.transforms:
+            for t in self.transforms[:-1]:
+                while True:
+                    new_results = t(results)
+                    if len(new_results['bboxes']) != 0:
+                        results = new_results
+                        break
+
+            if type(results['labels']) is np.ndarray:
+                results['labels'] = torch.from_numpy(results['labels']).type(torch.int64)
+            sample = {
+                'image': results['image'],
+                'bboxes': results['bboxes'],
+                'labels': results['labels'],
+            }
+            for t in [self.transforms[-1]]: #TODO: diff with self.transforms[-1]? datatype of label will change?
                 while True:
                     new_sample = t(**sample)
                     if len(new_sample['bboxes']) != 0:
@@ -127,7 +144,7 @@ class WheatTestDataset(Dataset):
 
         image = cv2.imread(f'{self.image_dir}/{image_id}.jpg', cv2.IMREAD_COLOR)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32)
-        # image /= 255.0
+        image /= 255.0
 
         if self.transforms:
             sample = {
