@@ -10,6 +10,7 @@ import albumentations as A
 
 from loss.averager import Averager
 from dataset.wheat import WheatDataset,WheatTestDataset
+from dataset.transform import PhotoMetricDistortion, MixUp, Mosaic, GaussNoise
 from utils.Network_utils import get_logger,summary_args,Timer,wrap_color,info
 
 from torch.utils.data import DataLoader, Dataset
@@ -20,26 +21,28 @@ from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 from torchvision.models.detection.rpn import AnchorGenerator
 from torch.utils.data.sampler import SequentialSampler
 
-DIR_INPUT = '/data1/jliang_data/dataset/wheat'
-WEIGHTS_FILE = '/data1/jliang_data/competition/first/global_wheat_detection/new_model/fasterrcnn_resnet152_fpn-30_PMD_gray_cutout_mixup_mode1_bs3.pth'
+# DIR_INPUT = '/data1/jliang_data/dataset/wheat'
+# WEIGHTS_FILE = '/data1/jliang_data/competition/first/global_wheat_detection/new_model/fasterrcnn_resnet152_fpn-30_PMD_gray_cutout_mixup_mode1_bs3.pth'
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '6'
+# os.environ["CUDA_VISIBLE_DEVICES"] = '6'
 
 # Albumentations
 def get_train_transform():
     train_pipline = [
-        # PhotoMetricDistortion(
-        #     brightness_delta=32,
-        #     contrast_range=(0.5, 1.5),
-        #     saturation_range=(0.5, 1.5),
-        #     hue_delta=18),
-        # MixUp(p=0.5, mode=1),
+        PhotoMetricDistortion(
+            brightness_delta=32,
+            contrast_range=(0.5, 1.5),
+            saturation_range=(0.5, 1.5),
+            hue_delta=18),
+        MixUp(p=0.5, mode=1),
         # Mosaic(p=0.2),
+        GaussNoise(p=0.2),
         A.Compose([
             A.Flip(p=0.5),
-            # A.ToGray(p=0.01),
-            # A.Cutout(num_holes=8, max_h_size=64, max_w_size=64, fill_value=0, p=0.5),
-            # A.RandomCrop(height=1000, width=1000, p=0.5),
+            A.RandomRotate90(p=0.5),
+            A.ToGray(p=0.01),
+            A.Cutout(num_holes=8, max_h_size=64, max_w_size=64, fill_value=0, p=0.5),
+            A.RandomCrop(height=1000, width=1000, p=0.5),
             ToTensorV2(p=1.0)
         ], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']})
     ]
@@ -49,12 +52,12 @@ def get_train_transform():
 
 def get_valid_transform():
     train_pipline = [
-        # PhotoMetricDistortion(
-        #     brightness_delta=32,
-        #     contrast_range=(0.5, 1.5),
-        #     saturation_range=(0.5, 1.5),
-        #     hue_delta=18),
-        # MixUp(p=0.5, mode=1),
+        PhotoMetricDistortion(
+            brightness_delta=32,
+            contrast_range=(0.5, 1.5),
+            saturation_range=(0.5, 1.5),
+            hue_delta=18),
+        MixUp(p=0.5, mode=1),
         # Mosaic(p=0.2),
         A.Compose([
             # A.Flip(p=0.5),
@@ -88,7 +91,7 @@ def fasterrcnn_resnet101_fpn(pretrained=False, progress=True,
         pretrained_backbone = False
     backbone = resnet_fpn_backbone('resnet152', pretrained_backbone)
     anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
-                                            aspect_ratios=((0.5, 1.0, 2.0, 2.5),))
+                                            aspect_ratios=((1.0, 2.0, 2.5),))
     model = FasterRCNN(backbone, num_classes, rpn_anchor_generator=anchor_generator, **kwargs)
     return model
 
@@ -127,7 +130,7 @@ def loadmodel():
     return model,device
 
 
-def pseudo_test(model,device):
+def pseudo_test(model,device, DIR_INPUT, WEIGHTS_FILE):
 
     test_dataset = WheatTestDataset(DIR_INPUT, get_test_transform())
 
@@ -184,7 +187,7 @@ def pseudo_test(model,device):
 
     return test_df_pseudo
 
-def train(args,model,device,test_df):
+def train(args,model,device,test_df, DIR_INPUT):
     t = time.strftime("-%Y-%m-%d-%H-%M-%S", time.localtime())
     name = 'Log' + t
     logger = get_logger('log', name)
@@ -206,8 +209,8 @@ def train(args,model,device,test_df):
 
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
-    # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[16, 19], gamma=0.1)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.5)
+    lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[6, 9], gamma=0.1)
+    # lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.5)
     # lr_scheduler = None
 
     num_epochs = args.num_epoch
@@ -253,23 +256,28 @@ def train(args,model,device,test_df):
             lr_scheduler.step()
 
         print(f"Epoch #{epoch} loss: {loss_hist.value}")
-    torch.save(model.state_dict(), 'fasterrcnn_resnet152_pl_fpn_'+ str(num_epochs)+ t + '.pth')
+    torch.save(model.state_dict(), 'last_'+ str(num_epochs)+ t + '.pth')
 
 if __name__ == "__main__":
     parse = argparse.ArgumentParser()
 
     # LR setting
-    parse.add_argument('--lr', type=float, default=0.01)
+    parse.add_argument('--lr', type=float, default=0.00125)
     parse.add_argument('--momentum', type=float, default=0.9)
     parse.add_argument('--weight-decay', type=float, default=0.0001)
 
     # Train setting
-    parse.add_argument('--num-epoch', type=int, default=6)
-    parse.add_argument('--batch-size', type=int, default=4)
+    parse.add_argument('--num-epoch', type=int, default=10)
+    parse.add_argument('--batch-size', type=int, default=3)
     parse.add_argument('--shuffle', type=bool, default=True)
+
+    parse.add_argument('--DIR_INPUT', type=str, default=None)
+    parse.add_argument('--WEIGHTS_FILE', type=str, default=None)
 
     args = parse.parse_args()
 
+    DIR_INPUT = args.DIR_INPUT
+    WEIGHTS_FILE = args.WEIGHTS_FILE
     model,device=loadmodel()
-    test_df=pseudo_test(model,device)
+    test_df=pseudo_test(model,device, DIR_INPUT, WEIGHTS_FILE)
     train(args,model,device,test_df)

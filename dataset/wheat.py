@@ -37,6 +37,7 @@ class WheatDataset(Dataset):
         # train_df.tail()
 
         self.image_ids = train_df['image_id'].unique()
+        train_df = train_df[~((train_df['w'] < 16) & (train_df['h'] < 16))]
         self.df = train_df
         self.image_dir = f'{DIR_INPUT}/train'
         self.transforms = transforms
@@ -116,7 +117,7 @@ class WheatDataset(Dataset):
                         sample = new_sample
                         break
             image = sample['image']
-            target['boxes'] = torch.stack(tuple(map(torch.tensor, zip(*sample['bboxes'])))).permute(1, 0)
+            target['boxes'] = torch.stack(tuple(map(torch.tensor, zip(*sample['bboxes'])))).permute(1, 0).float()
             # torch.tensor(sample['bboxes'])
             target['labels'] = torch.stack(sample['labels'], 0)
 

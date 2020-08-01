@@ -427,3 +427,25 @@ class Resize(object):
         results['labels'] = torch.stack(new_sample['labels'], 0)
 
         return results
+
+class GaussNoise(object):
+    def __init__(self, p, var=(1,6)):
+        self.p = p
+        self.var = var
+
+    def __call__(self, results):
+        if np.random.rand() > self.p:
+            return results
+
+        image = results['image']
+        for i in range(image.shape[2]):
+            c = image[:, :, i]
+            diff = 255 - c.max()
+            noise = np.random.normal(0, random.randint(self.var[0], self.var[1]), c.shape)
+            noise = (noise - noise.min()) / (noise.max() - noise.min())
+            noise = diff * noise
+            image[:, :, i] = c + noise.astype(np.uint8)
+
+        results['image'] = image
+
+        return results
