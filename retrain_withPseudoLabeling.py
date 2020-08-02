@@ -90,9 +90,12 @@ def fasterrcnn_resnet101_fpn(pretrained=False, progress=True,
         # no need to download the backbone if pretrained is set
         pretrained_backbone = False
     backbone = resnet_fpn_backbone('resnet152', pretrained_backbone)
-    anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
-                                            aspect_ratios=((1.0, 2.0, 2.5),))
-    model = FasterRCNN(backbone, num_classes, rpn_anchor_generator=anchor_generator, **kwargs)
+    anchor_sizes = ((32,), (64,), (128,), (256,), (512,))
+    aspect_ratios = ((1.0, 2.0, 2.5),) * len(anchor_sizes)
+    rpn_anchor_generator = AnchorGenerator(
+        anchor_sizes, aspect_ratios
+    )
+    model = FasterRCNN(backbone, num_classes, rpn_anchor_generator=rpn_anchor_generator, **kwargs)
     return model
 
 def initialize_model():
