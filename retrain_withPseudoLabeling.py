@@ -283,4 +283,4 @@ if __name__ == "__main__":
     WEIGHTS_FILE = args.WEIGHTS_FILE
     model,device=loadmodel()
     test_df=pseudo_test(model,device, DIR_INPUT, WEIGHTS_FILE)
-    train(args,model,device,test_df)
+    train(args,model,device,test_df, DIR_INPUT)
