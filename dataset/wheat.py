@@ -14,7 +14,7 @@ class WheatDataset(Dataset):
         super().__init__()
 
         train_df = pd.read_csv(f'{DIR_INPUT}/train.csv')
-
+        self.dir_input = DIR_INPUT
         train_df['x'] = -1
         train_df['y'] = -1
         train_df['w'] = -1
@@ -95,6 +95,7 @@ class WheatDataset(Dataset):
                 'idx': index,
                 'image_ids': self.image_ids,
                 'df': self.df,
+                'dir_input' : self.dir_input,
             }
             for t in self.transforms[:-1]:
                 while True:

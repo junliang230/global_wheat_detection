@@ -326,9 +326,9 @@ class MixUp(object):
         self.p = p
         self.mode = mode
 
-    def load_image(self, index, image_ids, df):
+    def load_image(self, index, image_ids, df, dir_input):
         image_id = image_ids[index]
-        DIR_INPUT = '/data1/jliang_data/dataset/wheat'
+        DIR_INPUT = dir_input
         imgpath = f'{DIR_INPUT}/train'
         img = cv2.imread(f'{imgpath}/{image_id}.jpg', cv2.IMREAD_COLOR)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32)
@@ -350,8 +350,9 @@ class MixUp(object):
         boxes = results['bboxes']
         image_ids = results['image_ids']
         df = results['df']
+        dir_input = results['dir_input']
         indices = random.randint(0, len(image_ids) - 1)
-        new_img, new_bbox = self.load_image(indices, image_ids, df)
+        new_img, new_bbox = self.load_image(indices, image_ids, df, dir_input)
 
         if self.mode == 1:
             mixup_image = (img + new_img) / 2
